@@ -2,15 +2,45 @@ import sqlite3
 from typing import List, Tuple, Optional
 
 class Database:
-    """Class untuk mengelola koneksi dan operasi database"""
+    """
+    Class untuk mengelola koneksi dan operasi database
+    
+    PRAKTIKUM 3: KONSTRUKTOR DAN ENKAPSULASI
+    - Konstruktor (__init__): Menginisialisasi objek dengan db_name dan membuat tabel
+    - Enkapsulasi: Atribut db_name bersifat private dengan naming convention
+    - Method get_connection() menyembunyikan detail implementasi koneksi
+    """
     
     def __init__(self, db_name: str = "mahasiswa.db"):
-        self.db_name = db_name
+        """
+        Konstruktor untuk inisialisasi database
+        
+        Args:
+            db_name: Nama file database (default: mahasiswa.db)
+        """
+        self.__db_name = db_name  # Private attribute (enkapsulasi)
         self.create_tables()
     
+    # Getter untuk db_name (enkapsulasi)
+    @property
+    def db_name(self) -> str:
+        """Getter untuk mengakses nama database"""
+        return self.__db_name
+    
+    # Setter untuk db_name (enkapsulasi dengan validasi)
+    @db_name.setter
+    def db_name(self, value: str):
+        """Setter untuk mengubah nama database dengan validasi"""
+        if not value or not value.endswith('.db'):
+            raise ValueError("Nama database harus berakhiran .db")
+        self.__db_name = value
+    
     def get_connection(self):
-        """Membuat koneksi ke database"""
-        return sqlite3.connect(self.db_name)
+        """
+        Membuat koneksi ke database
+        Method ini menyembunyikan detail implementasi (enkapsulasi)
+        """
+        return sqlite3.connect(self.__db_name)
     
     def create_tables(self):
         """Membuat tabel-tabel yang diperlukan"""
@@ -58,7 +88,10 @@ class Database:
         conn.close()
     
     def execute_query(self, query: str, params: tuple = ()) -> bool:
-        """Eksekusi query INSERT, UPDATE, DELETE"""
+        """
+        Eksekusi query INSERT, UPDATE, DELETE
+        Enkapsulasi error handling di dalam method
+        """
         try:
             conn = self.get_connection()
             cursor = conn.cursor()

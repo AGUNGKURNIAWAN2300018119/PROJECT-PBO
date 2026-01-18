@@ -1,68 +1,159 @@
 from database import Database
 from typing import List, Optional, Tuple
 
-class Nilai:
-    """Class untuk mengelola data nilai mahasiswa"""
-    
-    def __init__(self, nim: str, kode_mk: str, tugas: float = 0, uts: float = 0, uas: float = 0):
-        self.nim = nim
-        self.kode_mk = kode_mk
-        self.tugas = tugas
-        self.uts = uts
-        self.uas = uas
-        self.nilai_akhir = self.hitung_nilai_akhir()
-        self.grade = self.hitung_grade()
-        self.status = self.hitung_status()
-        self.db = Database()
+class Penilaian:
+    """
+    PRAKTIKUM 5: POLYMORPHISM
+    Abstract base class untuk berbagai jenis penilaian
+    """
     
     def hitung_nilai_akhir(self) -> float:
-        """Hitung nilai akhir dengan bobot: Tugas 30%, UTS 30%, UAS 40%"""
-        return round((self.tugas * 0.3) + (self.uts * 0.3) + (self.uas * 0.4), 2)
+        """Method yang akan di-override (polymorphism)"""
+        raise NotImplementedError("Method harus diimplementasikan")
     
-    def hitung_grade(self) -> str:
-        """Hitung grade berdasarkan nilai akhir"""
-        if self.nilai_akhir >= 85:
+    def hitung_grade(self, nilai_akhir: float) -> str:
+        """
+        Polymorphism: Method yang sama dengan implementasi berbeda
+        di child classes
+        """
+        if nilai_akhir >= 85:
             return 'A'
-        elif self.nilai_akhir >= 80:
+        elif nilai_akhir >= 80:
             return 'A-'
-        elif self.nilai_akhir >= 75:
+        elif nilai_akhir >= 75:
             return 'B+'
-        elif self.nilai_akhir >= 70:
+        elif nilai_akhir >= 70:
             return 'B'
-        elif self.nilai_akhir >= 65:
+        elif nilai_akhir >= 65:
             return 'B-'
-        elif self.nilai_akhir >= 60:
+        elif nilai_akhir >= 60:
             return 'C+'
-        elif self.nilai_akhir >= 55:
+        elif nilai_akhir >= 55:
             return 'C'
-        elif self.nilai_akhir >= 50:
+        elif nilai_akhir >= 50:
             return 'D'
         else:
             return 'E'
+
+
+class Nilai(Penilaian):
+    """
+    PRAKTIKUM 5: POLYMORPHISM
+    PRAKTIKUM 6: RELASI ANTAR CLASS
+    
+    Class Nilai yang mewarisi dari Penilaian
+    - Polymorphism: Override method hitung_nilai_akhir()
+    - Relasi: Memiliki relasi dengan Mahasiswa dan MataKuliah (Composition/Association)
+    """
+    
+    def __init__(self, nim: str, kode_mk: str, tugas: float = 0, uts: float = 0, uas: float = 0):
+        """
+        Konstruktor dengan komposisi objek
+        
+        PRAKTIKUM 6: RELASI ANTAR CLASS
+        - nim: Foreign key ke Mahasiswa (Association)
+        - kode_mk: Foreign key ke MataKuliah (Association)
+        """
+        self.__nim = nim
+        self.__kode_mk = kode_mk
+        self.__tugas = tugas
+        self.__uts = uts
+        self.__uas = uas
+        self.__nilai_akhir = self.hitung_nilai_akhir()  # Polymorphism
+        self.__grade = self.hitung_grade(self.__nilai_akhir)  # Polymorphism
+        self.__status = self.hitung_status()
+        self.db = Database()
+    
+    # Property untuk enkapsulasi
+    @property
+    def nim(self) -> str:
+        return self.__nim
+    
+    @property
+    def kode_mk(self) -> str:
+        return self.__kode_mk
+    
+    @property
+    def tugas(self) -> float:
+        return self.__tugas
+    
+    @tugas.setter
+    def tugas(self, value: float):
+        if not 0 <= value <= 100:
+            raise ValueError("Nilai tugas harus antara 0-100")
+        self.__tugas = value
+        self.__update_calculated_values()
+    
+    @property
+    def uts(self) -> float:
+        return self.__uts
+    
+    @uts.setter
+    def uts(self, value: float):
+        if not 0 <= value <= 100:
+            raise ValueError("Nilai UTS harus antara 0-100")
+        self.__uts = value
+        self.__update_calculated_values()
+    
+    @property
+    def uas(self) -> float:
+        return self.__uas
+    
+    @uas.setter
+    def uas(self, value: float):
+        if not 0 <= value <= 100:
+            raise ValueError("Nilai UAS harus antara 0-100")
+        self.__uas = value
+        self.__update_calculated_values()
+    
+    @property
+    def nilai_akhir(self) -> float:
+        return self.__nilai_akhir
+    
+    @property
+    def grade(self) -> str:
+        return self.__grade
+    
+    @property
+    def status(self) -> str:
+        return self.__status
+    
+    def __update_calculated_values(self):
+        """Private method untuk update nilai terhitung"""
+        self.__nilai_akhir = self.hitung_nilai_akhir()
+        self.__grade = self.hitung_grade(self.__nilai_akhir)
+        self.__status = self.hitung_status()
+    
+    def hitung_nilai_akhir(self) -> float:
+        """
+        PRAKTIKUM 5: POLYMORPHISM
+        Override method dari parent class Penilaian
+        Implementasi spesifik untuk perhitungan nilai
+        Bobot: Tugas 30%, UTS 30%, UAS 40%
+        """
+        return round((self.__tugas * 0.3) + (self.__uts * 0.3) + (self.__uas * 0.4), 2)
     
     def hitung_status(self) -> str:
         """Hitung status kelulusan (Lulus jika nilai >= 55)"""
-        return "Lulus" if self.nilai_akhir >= 55 else "Tidak Lulus"
+        return "Lulus" if self.__nilai_akhir >= 55 else "Tidak Lulus"
     
     def tambah(self) -> bool:
         """Menambah data nilai ke database"""
         query = """INSERT INTO nilai (nim, kode_mk, tugas, uts, uas, nilai_akhir, grade, status) 
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-        params = (self.nim, self.kode_mk, self.tugas, self.uts, self.uas, 
-                  self.nilai_akhir, self.grade, self.status)
+        params = (self.__nim, self.__kode_mk, self.__tugas, self.__uts, self.__uas, 
+                  self.__nilai_akhir, self.__grade, self.__status)
         return self.db.execute_query(query, params)
     
     def update(self) -> bool:
         """Update data nilai"""
         # Recalculate nilai akhir, grade, dan status
-        self.nilai_akhir = self.hitung_nilai_akhir()
-        self.grade = self.hitung_grade()
-        self.status = self.hitung_status()
+        self.__update_calculated_values()
         
         query = """UPDATE nilai SET tugas=?, uts=?, uas=?, nilai_akhir=?, grade=?, status=? 
                    WHERE nim=? AND kode_mk=?"""
-        params = (self.tugas, self.uts, self.uas, self.nilai_akhir, 
-                  self.grade, self.status, self.nim, self.kode_mk)
+        params = (self.__tugas, self.__uts, self.__uas, self.__nilai_akhir, 
+                  self.__grade, self.__status, self.__nim, self.__kode_mk)
         return self.db.execute_query(query, params)
     
     @staticmethod
@@ -85,7 +176,10 @@ class Nilai:
     
     @staticmethod
     def get_by_nim(nim: str) -> List[tuple]:
-        """Ambil semua nilai mahasiswa berdasarkan NIM"""
+        """
+        PRAKTIKUM 6: RELASI ANTAR CLASS
+        Demonstrasi JOIN query - relasi antar tabel
+        """
         db = Database()
         query = """
             SELECT n.nim, m.nama, n.kode_mk, mk.nama_mk, 
@@ -100,7 +194,7 @@ class Nilai:
     
     @staticmethod
     def get_all() -> List[tuple]:
-        """Ambil semua data nilai"""
+        """Ambil semua data nilai dengan JOIN"""
         db = Database()
         query = """
             SELECT n.nim, m.nama, n.kode_mk, mk.nama_mk, 
@@ -122,10 +216,16 @@ class Nilai:
     
     @staticmethod
     def get_statistik_mahasiswa(nim: str) -> Tuple[float, int, int]:
-        """Ambil statistik nilai mahasiswa: IPK, Total SKS, Jumlah MK Lulus"""
+        """
+        PRAKTIKUM 6: RELASI ANTAR CLASS
+        Demonstrasi aggregation - menghitung statistik dari relasi
+        
+        Returns:
+            Tuple[IPK, Total SKS, Jumlah MK Lulus]
+        """
         db = Database()
         
-        # Ambil nilai dan SKS
+        # Ambil nilai dan SKS melalui JOIN
         query = """
             SELECT n.nilai_akhir, mk.sks, n.status
             FROM nilai n
@@ -173,6 +273,6 @@ class Nilai:
         return ipk, total_sks, jumlah_lulus
     
     def __str__(self):
-        return (f"Nilai(NIM: {self.nim}, Kode MK: {self.kode_mk}, "
-                f"Tugas: {self.tugas}, UTS: {self.uts}, UAS: {self.uas}, "
-                f"Nilai Akhir: {self.nilai_akhir}, Grade: {self.grade}, Status: {self.status})")
+        return (f"Nilai(NIM: {self.__nim}, Kode MK: {self.__kode_mk}, "
+                f"Tugas: {self.__tugas}, UTS: {self.__uts}, UAS: {self.__uas}, "
+                f"Nilai Akhir: {self.__nilai_akhir}, Grade: {self.__grade}, Status: {self.__status})")
